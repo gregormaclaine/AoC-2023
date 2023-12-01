@@ -1,7 +1,7 @@
 .data
 
 buffer: .asciiz "1abc2\npqr3stu8vwx\na1b2c3d4e5f\ntreb7uchet"
-	
+
 .text
 
 li $t0, 0   # Character index
@@ -35,12 +35,10 @@ end_line:
 	
 	addi $t0, $t0, 1
 	j main
-	
 
 next_char:
 	addi $t0, $t0, 1
 	j main
-	
 	
 end:
 	add $t2, $t2, $t4
@@ -53,4 +51,3 @@ end:
 
 	li $v0, 10
 	syscall
-	
