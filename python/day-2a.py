@@ -7,7 +7,7 @@ maxes = {
 
 def is_valid_round(r):
     pairs = [p.split(' ') for p in r.split(', ')]
-    return all(map(lambda (n, c): int(n) <= maxes[c], pairs))
+    return all(map(lambda p: int(p[0]) <= maxes[p[1]], pairs))
 
 
 with open('input/day-2.txt', 'r') as f:
