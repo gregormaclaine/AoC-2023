@@ -1,10 +1,30 @@
 .data
 
-buffer: .asciiz "Game 1: 3 blue, 4 red; 1 red, 2 green, 6 blue; 2 green\nGame 2: 1 blue, 2 green; 3 green, 4 blue, 1 red; 1 green, 1 blue\nGame 3: 8 green, 6 blue, 20 red; 5 blue, 4 red, 13 green; 5 green, 1 red\nGame 4: 1 green, 3 red, 6 blue; 3 green, 6 red; 3 green, 15 blue, 14 red\nGame 5: 6 red, 1 blue, 3 green; 2 blue, 1 red, 2 green"
+input_file: .asciiz "/Users/gregormaclaine/Projects/AoC-2023/input/day-2.txt"
+buffer: .space 12000  # 12KB
 
 err_msg: .asciiz "There was an error"
 
 .text
+
+read_file:
+	li $v0, 13           # Load the system call code for open file
+	la $a0, input_file   # Load the address of the input file name
+	li $a1, 0            # Flag for reading
+	li $a2, 0            # Mode is ignored
+	syscall
+	
+	move $s0, $v0        # Save the file descriptor returned by syscall
+	
+	li $v0, 14           # Load the system call code for reading from file
+	move $a0, $s0        # Load the file descriptor to read
+	la $a1, buffer       # Load the address of the buffer to write into
+	li $a2, 12000        # Read the entire file into the buffer
+	syscall
+	
+	li $v0, 16           # Load the system call for close file
+	move $a0, $s0        # Load the file descriptor to close
+	syscall
 
 la $s0, buffer  # Character index
 li $t1, 0  # Current game number
@@ -40,7 +60,7 @@ game_init:
     subi $t0, $t0, 48
     mul $t1, $t1, 10
     add $t1, $t1, $t0
-
+    
     addi $s0, $s0, 1
     j end_game_init
 
@@ -107,6 +127,7 @@ goto_next_count:
 
 completed_line:
     add $t2, $t2, $t1
+    beqz $t0, end
     j main
 
 end:
