@@ -3,3 +3,4 @@ temp.*
 *.bin
 rust/target
 .DS_Store
+input/
