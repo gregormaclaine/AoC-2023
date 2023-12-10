@@ -1,3 +1,6 @@
+_map = map
+
+
 def get_next_poses(map, p):
     pipe = map[p[0]][p[1]]
 
@@ -74,13 +77,13 @@ def combine_lines(points):
     remaining = [*points[2:], points[0]]
 
     cur_dir = get_dir(points[0], points[1])
-    lines = [[points[0], points[1]]]
+    lines = [[cur_dir, points[0], points[1]]]
     for p in remaining:
-        new_dir = get_dir(lines[-1][1], p)
+        new_dir = get_dir(lines[-1][2], p)
         if new_dir == cur_dir:
-            lines[-1][1] = p
+            lines[-1][2] = p
         else:
-            lines.append([lines[-1][1], p])
+            lines.append([new_dir, lines[-1][2], p])
             cur_dir = new_dir
 
     return lines
@@ -92,6 +95,22 @@ def get_edge_points(map):
         [(w - 1, i) for i in range(w)] + \
         [(i, 0) for i in range(1, w - 1)] + \
         [(i, w - 1) for i in range(1, w - 1)]
+
+
+def is_between(n, a, b):
+    if n >= a and n <= b:
+        return True
+    return n >= b and n <= a
+
+
+def point_crosses_vert_line(lines, p):
+    vert_lines = [l for l in lines if l[0] in ['u', 'd']]
+    return any(p[1] == src[1] and is_between(p[0], src[0], end[0]) for _, src, end in vert_lines)
+
+
+def point_crosses_hor_line(lines, p):
+    hor_lines = [l for l in lines if l[0] in ['l', 'r']]
+    return any(p[1] == src[1] and is_between(p[0], src[0], end[0]) for _, src, end in hor_lines)
 
 
 with open('input/day-10.txt', 'r') as f:
@@ -112,33 +131,44 @@ with open('input/day-10.txt', 'r') as f:
         new_points = [p for p in get_links(map, n) if p not in seen]
         stack.extend(new_points)
 
-    # print('Combining pipe lines...')
-    # pipe_lines = combine_lines(seen)
-    # # print(pipe_lines, len(pipe_lines))
+    print(seen)
+    print('Combining pipe lines...')
+    pipe_lines = combine_lines(seen)
+    print('\n'.join(_map(str, pipe_lines)), len(pipe_lines))
 
-    o_stack = []
-    for o in get_edge_points(map):
-        if o not in seen:
-            outside_point = o
-            break
-    else:
-        print('No outside points')  # todo fix edgecase here
-        print(len(map[0]) ** 2 - len(seen))
-        exit(0)
+    inside_points_h = []
+    for i in range(len(map)):
+        is_inside = map[i][0] in seen
+        count = 0
+        for j in range(1, len(map[0])):
+            if point_crosses_vert_line(pipe_lines, (i, j)):
+                is_inside = not is_inside
 
-    print('Found outside point:', o)
+            p = map[i][j]
+            print((i, j), p, point_crosses_vert_line(
+                pipe_lines, (i, j)), 'inside=' + str(is_inside))
 
-    o_seen = []
-    o_stack = [outside_point]
-    while len(o_stack):
-        n = o_stack.pop()
-        if n in o_seen:
-            continue
-        o_seen.append(n)
-        neighbours = [p for p in get_next_poses(
-            map, n) if is_valid(p, map)]
-        new_points = [p for p in neighbours if p not in seen]
-        # print('np', new_points)
-        o_stack.extend(new_points)
+            if is_inside and ((i, j) not in seen):
+                print('counting', (i, j))
+                inside_points_h.append((i, j))
 
-    print(len(map[0]) * len(map) - len(o_seen) - len(seen))
+        print('')
+
+    inside_points_v = []
+    for j in range(len(map[0])):
+        is_inside = map[0][j] in seen
+        count = 0
+        for i in range(1, len(map)):
+            if point_crosses_hor_line(pipe_lines, (i, j)):
+                is_inside = not is_inside
+
+            if is_inside and ((i, j) not in seen):
+                inside_points_v.append((i, j))
+
+            p = map[i][j]
+            # print((i, j), p, point_crosses_vert_line(
+            # pipe_lines, (i, j)), 'inside=' + str(is_inside))
+
+    print(inside_points_h)
+    print(inside_points_v)
+    print(len(set(inside_points_h).intersection(set(inside_points_v))))
