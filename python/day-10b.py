@@ -148,65 +148,73 @@ with open('input/day-10.txt', 'r') as f:
         new_points = [p for p in get_links(map, n) if p not in seen]
         stack.extend(new_points)
 
+    print('Simplifying map...')
+    for i in range(len(map)):
+        for j in range(len(map[0])):
+            map[i] = list(map[i])
+            if (i, j) not in seen:
+                map[i][j] = '.'
+
     # print(seen)
     print('Combining pipe lines...\n\n')
     pipe_lines = organise_lines(combine_lines(seen))
     # print('\n'.join(_map(str, pipe_lines)), len(pipe_lines))
 
-    # inside_points_h = []
-    # for i in range(len(map)):
-    #     is_inside = (i, 0) in seen
-    #     count = 0
-    #     for j in range(1, len(map[0])):
-    #         if point_crosses_vert_line(pipe_lines, (i, j)):
-    #             is_inside = not is_inside
+    inside_points_h = []
+    for i in range(len(map)):
+        # print(''.join(map[i]))
+        line = ['|' if c == '|' else '.' for c in map[i]]
+        hor_starts = ([(l[1][1], l[2][1])
+                       for l in pipe_lines if l[0] in ['r', 'l'] and l[1][0] == i])
+        # print(hor_starts)
 
-    #         p = map[i][j]
-    #         print((i, j), p, point_crosses_vert_line(
-    #             pipe_lines, (i, j)), 'inside=' + str(is_inside))
+        for s in hor_starts:
+            line = ['x' if is_between(i, s[0], s[1])
+                    else c for i, c in enumerate(line)]
+            line[s[0]] = '|'
+        line = [c for c in line if c != 'x']
 
-    #         if is_inside and ((i, j) not in seen):
-    #             print('counting', (i, j))
-    #             inside_points_h.append((i, j))
+        # print(''.join(line))
 
-    #     print('')
+        running_points = None
+        for j, c in enumerate(line):
+            if c == '|':
+                if running_points is None:
+                    running_points = []
+                else:
+                    inside_points_h.extend(running_points)
+                    running_points = None
 
-    # inside_points_v = []
-    # for j in range(len(map[0])):
-    #     is_inside = (0, j) in seen
-    #     count = 0
-    #     for i in range(1, len(map)):
-    #         if point_crosses_hor_line(pipe_lines, (i, j)):
-    #             is_inside = not is_inside
+            elif running_points is not None:
+                running_points.append((i, j))
 
-    #         if is_inside and ((i, j) not in seen):
-    #             inside_points_v.append((i, j))
+    inside_points_v = []
+    for j in range(len(map[0])):
+        line = ['-' if l[j] == '-' else '.' for l in map]
+        vert_starts = ([(l[1][0], l[2][0])
+                       for l in pipe_lines if l[0] in ['u', 'd'] and l[1][1] == j])
 
-    #         p = map[i][j]
-    #         # print((i, j), p, point_crosses_vert_line(
-    #         # pipe_lines, (i, j)), 'inside=' + str(is_inside))
+        # print(vert_starts)
+        for s in vert_starts:
+            line = ['x' if is_between(i, s[0], s[1])
+                    else c for i, c in enumerate(line)]
+            line[s[0]] = '-'
+        line = [c for c in line if c != 'x']
 
-    # print(inside_points_h)
-    # print(inside_points_v)
-    # print(len(set(inside_points_h).intersection(set(inside_points_v))))
+        print(''.join(line))
 
-    inside_points = []
-    for i in [1]:
-        is_inside = (i, 0) in seen
+        running_points = None
+        for i, c in enumerate(line):
+            if c == '-':
+                if running_points is None:
+                    running_points = []
+                else:
+                    inside_points_v.extend(running_points)
+                    running_points = None
 
-        j = 1
-        while j < len(map[0]):
-            print(map[i][j])
-            if point_crosses_vert_line(pipe_lines, (i, j)):
-                is_inside = not is_inside
+            elif running_points is not None:
+                running_points.append((i, j))
 
-                hline = get_horiz_line_from_p((i, j), pipe_lines)
-                if hline is not None:
-                    j = hline[2][1]
-
-            if is_inside and ((i, j) not in seen):
-                inside_points.append((i, j))
-
-            j += 1
-
-    print(inside_points)
+    print(inside_points_h)
+    print(inside_points_v)
+    print(len(set(inside_points_h).intersection(set(inside_points_v))))
