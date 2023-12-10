@@ -1,8 +1,3 @@
-import re
-
-_map = map
-
-
 def get_next_poses(map, p):
     pipe = map[p[0]][p[1]]
 
@@ -151,7 +146,6 @@ with open('input/day-10.txt', 'r') as f:
     # print(seen)
     print('Combining pipe lines...\n\n')
     pipe_lines = combine_lines(seen)
-    # print('\n'.join(_map(str, pipe_lines)), len(pipe_lines))
 
     inside_points = []
     for i in range(len(map)):
@@ -166,13 +160,14 @@ with open('input/day-10.txt', 'r') as f:
             if not w['simple']:
                 line[w['src'][1]] = '|'
 
-        line = [c for c in line if c != 'x']
-
         # print(''.join(line))
 
         running_points = None
         for j, c in enumerate(line):
-            if c == '|':
+            if c == 'x':
+                continue
+
+            elif c == '|':
                 if running_points is None:
                     running_points = []
                 else:
@@ -182,5 +177,5 @@ with open('input/day-10.txt', 'r') as f:
             elif running_points is not None:
                 running_points.append((i, j))
 
-    print(inside_points)
+    # print(inside_points)
     print(len(inside_points))
