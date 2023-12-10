@@ -69,6 +69,8 @@ def get_dir(p1, p2):
     if p1[1] < p2[1]:  # Right
         return 'r'
 
+    raise Exception('not here pls')
+
 
 def get_links(map, p):
     neighbours = get_next_poses(map, p)
@@ -79,55 +81,46 @@ def combine_lines(points):
     remaining = [*points[2:], points[0]]
 
     cur_dir = get_dir(points[0], points[1])
-    lines = [[cur_dir, points[0], points[1]]]
+    lines = [{
+        'dir': cur_dir,
+        'src': points[0],
+        'end': points[1]
+    }]
+
     for p in remaining:
-        new_dir = get_dir(lines[-1][2], p)
+        new_dir = get_dir(lines[-1]['end'], p)
         if new_dir == cur_dir:
-            lines[-1][2] = p
+            lines[-1]['end'] = p
         else:
-            lines.append([new_dir, lines[-1][2], p])
+            lines.append({
+                'dir': new_dir,
+                'src': lines[-1]['end'],
+                'end': p
+            })
+
             cur_dir = new_dir
 
+    for i, line in enumerate(lines):
+        before = lines[i - 1]
+        after = lines[(i + 1) % len(lines)]
+        line['simple'] = before['dir'] != after['dir']
+
+    for line in lines:
+        if line['dir'] in ['l', 'u']:
+            # Swap lefts and ups to rights and downs
+            line['dir'] = 'r' if line['dir'] == 'l' else 'd'
+            line['src'], line['end'] = line['end'], line['src']
+
+    # for l in lines:
+    #     print(l)
+
     return lines
-
-
-def get_edge_points(map):
-    w = len(map[0])
-    return [(0, i) for i in range(w)] + \
-        [(w - 1, i) for i in range(w)] + \
-        [(i, 0) for i in range(1, w - 1)] + \
-        [(i, w - 1) for i in range(1, w - 1)]
 
 
 def is_between(n, a, b):
     if n >= a and n <= b:
         return True
     return n >= b and n <= a
-
-
-def point_crosses_vert_line(lines, p):
-    vert_lines = [l for l in lines if l[0] in ['u', 'd']]
-    return any(p[1] == src[1] and is_between(p[0], src[0], end[0]) for _, src, end in vert_lines)
-
-
-def point_crosses_hor_line(lines, p):
-    hor_lines = [l for l in lines if l[0] in ['l', 'r']]
-    return any(p[1] == src[1] and is_between(p[0], src[0], end[0]) for _, src, end in hor_lines)
-
-
-def collapse_line(line):
-    return re.sub(r'(L|F|S)-*(7|J|S)', r'|', line)
-
-
-def organise_lines(lines):
-    return [[l[0], l[1], l[2]] if l[0] in ['d', 'r'] else [l[0], l[2], l[1]] for l in lines]
-
-
-def get_horiz_line_from_p(p, lines):
-    for l in lines:
-        if l[1] == p and l[0] in ['r', 'l']:
-            return l
-    return None
 
 
 with open('input/day-10.txt', 'r') as f:
@@ -157,21 +150,22 @@ with open('input/day-10.txt', 'r') as f:
 
     # print(seen)
     print('Combining pipe lines...\n\n')
-    pipe_lines = organise_lines(combine_lines(seen))
+    pipe_lines = combine_lines(seen)
     # print('\n'.join(_map(str, pipe_lines)), len(pipe_lines))
 
-    inside_points_h = []
+    inside_points = []
     for i in range(len(map)):
         # print(''.join(map[i]))
         line = ['|' if c == '|' else '.' for c in map[i]]
-        hor_starts = ([(l[1][1], l[2][1])
-                       for l in pipe_lines if l[0] in ['r', 'l'] and l[1][0] == i])
-        # print(hor_starts)
+        widths = [l for l in pipe_lines if l['dir']
+                  == 'r' and l['src'][0] == i]
 
-        for s in hor_starts:
-            line = ['x' if is_between(i, s[0], s[1])
-                    else c for i, c in enumerate(line)]
-            line[s[0]] = '|'
+        for w in widths:
+            for ii in range(w['src'][1], w['end'][1] + 1):
+                line[ii] = 'x'
+            if not w['simple']:
+                line[w['src'][1]] = '|'
+
         line = [c for c in line if c != 'x']
 
         # print(''.join(line))
@@ -182,39 +176,11 @@ with open('input/day-10.txt', 'r') as f:
                 if running_points is None:
                     running_points = []
                 else:
-                    inside_points_h.extend(running_points)
+                    inside_points.extend(running_points)
                     running_points = None
 
             elif running_points is not None:
                 running_points.append((i, j))
 
-    inside_points_v = []
-    for j in range(len(map[0])):
-        line = ['-' if l[j] == '-' else '.' for l in map]
-        vert_starts = ([(l[1][0], l[2][0])
-                       for l in pipe_lines if l[0] in ['u', 'd'] and l[1][1] == j])
-
-        # print(vert_starts)
-        for s in vert_starts:
-            line = ['x' if is_between(i, s[0], s[1])
-                    else c for i, c in enumerate(line)]
-            line[s[0]] = '-'
-        line = [c for c in line if c != 'x']
-
-        print(''.join(line))
-
-        running_points = None
-        for i, c in enumerate(line):
-            if c == '-':
-                if running_points is None:
-                    running_points = []
-                else:
-                    inside_points_v.extend(running_points)
-                    running_points = None
-
-            elif running_points is not None:
-                running_points.append((i, j))
-
-    print(inside_points_h)
-    print(inside_points_v)
-    print(len(set(inside_points_h).intersection(set(inside_points_v))))
+    print(inside_points)
+    print(len(inside_points))
