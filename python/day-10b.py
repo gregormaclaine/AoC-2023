@@ -1,3 +1,5 @@
+import re
+
 _map = map
 
 
@@ -113,6 +115,21 @@ def point_crosses_hor_line(lines, p):
     return any(p[1] == src[1] and is_between(p[0], src[0], end[0]) for _, src, end in hor_lines)
 
 
+def collapse_line(line):
+    return re.sub(r'(L|F|S)-*(7|J|S)', r'|', line)
+
+
+def organise_lines(lines):
+    return [[l[0], l[1], l[2]] if l[0] in ['d', 'r'] else [l[0], l[2], l[1]] for l in lines]
+
+
+def get_horiz_line_from_p(p, lines):
+    for l in lines:
+        if l[1] == p and l[0] in ['r', 'l']:
+            return l
+    return None
+
+
 with open('input/day-10.txt', 'r') as f:
     txt = f.read()
     map = txt.split('\n')
@@ -131,44 +148,65 @@ with open('input/day-10.txt', 'r') as f:
         new_points = [p for p in get_links(map, n) if p not in seen]
         stack.extend(new_points)
 
-    print(seen)
-    print('Combining pipe lines...')
-    pipe_lines = combine_lines(seen)
-    print('\n'.join(_map(str, pipe_lines)), len(pipe_lines))
+    # print(seen)
+    print('Combining pipe lines...\n\n')
+    pipe_lines = organise_lines(combine_lines(seen))
+    # print('\n'.join(_map(str, pipe_lines)), len(pipe_lines))
 
-    inside_points_h = []
-    for i in range(len(map)):
-        is_inside = map[i][0] in seen
-        count = 0
-        for j in range(1, len(map[0])):
+    # inside_points_h = []
+    # for i in range(len(map)):
+    #     is_inside = (i, 0) in seen
+    #     count = 0
+    #     for j in range(1, len(map[0])):
+    #         if point_crosses_vert_line(pipe_lines, (i, j)):
+    #             is_inside = not is_inside
+
+    #         p = map[i][j]
+    #         print((i, j), p, point_crosses_vert_line(
+    #             pipe_lines, (i, j)), 'inside=' + str(is_inside))
+
+    #         if is_inside and ((i, j) not in seen):
+    #             print('counting', (i, j))
+    #             inside_points_h.append((i, j))
+
+    #     print('')
+
+    # inside_points_v = []
+    # for j in range(len(map[0])):
+    #     is_inside = (0, j) in seen
+    #     count = 0
+    #     for i in range(1, len(map)):
+    #         if point_crosses_hor_line(pipe_lines, (i, j)):
+    #             is_inside = not is_inside
+
+    #         if is_inside and ((i, j) not in seen):
+    #             inside_points_v.append((i, j))
+
+    #         p = map[i][j]
+    #         # print((i, j), p, point_crosses_vert_line(
+    #         # pipe_lines, (i, j)), 'inside=' + str(is_inside))
+
+    # print(inside_points_h)
+    # print(inside_points_v)
+    # print(len(set(inside_points_h).intersection(set(inside_points_v))))
+
+    inside_points = []
+    for i in [1]:
+        is_inside = (i, 0) in seen
+
+        j = 1
+        while j < len(map[0]):
+            print(map[i][j])
             if point_crosses_vert_line(pipe_lines, (i, j)):
                 is_inside = not is_inside
 
-            p = map[i][j]
-            print((i, j), p, point_crosses_vert_line(
-                pipe_lines, (i, j)), 'inside=' + str(is_inside))
+                hline = get_horiz_line_from_p((i, j), pipe_lines)
+                if hline is not None:
+                    j = hline[2][1]
 
             if is_inside and ((i, j) not in seen):
-                print('counting', (i, j))
-                inside_points_h.append((i, j))
+                inside_points.append((i, j))
 
-        print('')
+            j += 1
 
-    inside_points_v = []
-    for j in range(len(map[0])):
-        is_inside = map[0][j] in seen
-        count = 0
-        for i in range(1, len(map)):
-            if point_crosses_hor_line(pipe_lines, (i, j)):
-                is_inside = not is_inside
-
-            if is_inside and ((i, j) not in seen):
-                inside_points_v.append((i, j))
-
-            p = map[i][j]
-            # print((i, j), p, point_crosses_vert_line(
-            # pipe_lines, (i, j)), 'inside=' + str(is_inside))
-
-    print(inside_points_h)
-    print(inside_points_v)
-    print(len(set(inside_points_h).intersection(set(inside_points_v))))
+    print(inside_points)
