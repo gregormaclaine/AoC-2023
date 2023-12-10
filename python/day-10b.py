@@ -95,6 +95,15 @@ def combine_lines(points):
 
             cur_dir = new_dir
 
+    if lines[0]['dir'] == lines[-1]['dir']:
+        d = lines[0]['dir']
+        lines[0] = {
+            'dir': d,
+            'src': lines[-1 if d == 'r' else 0]['src'],
+            'end': lines[0 if d == 'r' else -1]['end']
+        }
+        lines.pop(len(lines) - 1)
+
     for i, line in enumerate(lines):
         before = lines[i - 1]
         after = lines[(i + 1) % len(lines)]
@@ -105,9 +114,6 @@ def combine_lines(points):
             # Swap lefts and ups to rights and downs
             line['dir'] = 'r' if line['dir'] == 'l' else 'd'
             line['src'], line['end'] = line['end'], line['src']
-
-    # for l in lines:
-    #     print(l)
 
     return lines
 
@@ -127,6 +133,7 @@ with open('input/day-10.txt', 'r') as f:
     seen = []
     stack = [start_pos]
 
+    print('Traversing cycle...')
     while len(stack):
         n = stack.pop()
         if n in seen:
@@ -143,13 +150,11 @@ with open('input/day-10.txt', 'r') as f:
             if (i, j) not in seen:
                 map[i][j] = '.'
 
-    # print(seen)
-    print('Combining pipe lines...\n\n')
+    print('Combining pipe lines...')
     pipe_lines = combine_lines(seen)
 
     inside_points = []
     for i in range(len(map)):
-        # print(''.join(map[i]))
         line = ['|' if c == '|' else '.' for c in map[i]]
         widths = [l for l in pipe_lines if l['dir']
                   == 'r' and l['src'][0] == i]
@@ -159,8 +164,6 @@ with open('input/day-10.txt', 'r') as f:
                 line[ii] = 'x'
             if not w['simple']:
                 line[w['src'][1]] = '|'
-
-        # print(''.join(line))
 
         running_points = None
         for j, c in enumerate(line):
@@ -177,5 +180,4 @@ with open('input/day-10.txt', 'r') as f:
             elif running_points is not None:
                 running_points.append((i, j))
 
-    # print(inside_points)
     print(len(inside_points))
