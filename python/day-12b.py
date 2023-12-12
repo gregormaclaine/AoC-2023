@@ -32,13 +32,63 @@ def brute_force(springs: str, groups):
     return valid_count
 
 
+# Should only take in spring run with no '.'s (Only 1 wide slot)
+def brute_force_v2(springs: str, groups):
+    while True:
+        print(springs, '\n', '  -', groups)
+        if sum(groups) - springs.count('#') < 0:
+            print(sum(groups), springs.count('#'))
+            return 0
+
+        vis_groups = [len(g) for g in springs.split('?') if len(g)]
+        if len(vis_groups) >= 2:
+            space_before_first_visible = springs.index('#')
+            if space_before_first_visible < groups[1] + 1:
+                springs = springs[space_before_first_visible +
+                                  vis_groups[0] + 1:]
+                groups = groups[1:]
+                continue
+
+            space_after_last_visible = ''.join(reversed(springs)).index('#')
+            if space_after_last_visible < groups[-2] + 1:
+                springs = springs[: -
+                                  (space_after_last_visible + vis_groups[-1] + 1)]
+                groups = groups[:-1]
+                continue
+
+            # if max(groups) in vis_groups:
+            #     m = max(groups)
+            #     max_indexes = [i for i, g in enumerate(groups) if g == m]
+
+            #     total = 0
+
+            #     for max_index in max_indexes:
+            #         space_req = sum(groups[:max_index]) + max_index
+            #         if space_req >= springs.index('#' * m):
+            #             pass
+
+        break
+
+    # free_spaces = len(springs) - sum(groups) - len(groups) + 1
+    # num_gaps = len(groups) + 1
+    # print('fs', free_spaces, num_gaps)
+
+    visible_groups = [len(g) for g in springs.split('?') if len(g)]
+    print(visible_groups)
+
+    if len(visible_groups) == 0:
+        return brute_force(springs, groups)
+
+    return brute_force(springs, groups)
+
+
 def brute_force_by_group(springs: str, groups):
     if sum(groups) - springs.count('#') < 0:
         return 0
 
     wide_slots = [g for g in springs.split('.') if len(g)]
     if len(wide_slots) == 1:
-        return brute_force(springs, groups)
+        return brute_force_v2(springs, groups)
 
     total = 0
 
@@ -47,7 +97,7 @@ def brute_force_by_group(springs: str, groups):
         if sum(groups[:first_slot_count]) + len(groups[:first_slot_count]) - 1 > len(wide_slots[0]):
             break
 
-        total += brute_force(wide_slots[0], groups[:first_slot_count]) * \
+        total += brute_force_v2(wide_slots[0], groups[:first_slot_count]) * \
             calc_possiblities_loop(
                 '.'.join(wide_slots[1:]), groups[first_slot_count:])
 
@@ -56,6 +106,7 @@ def brute_force_by_group(springs: str, groups):
 
 def calc_possiblities_loop(springs: str, groups, first=False):
     while True:
+        print(springs, '\n', '  -', groups)
         if len(groups) == 0 or springs.count('?') == 0:
             return 1
 
@@ -115,4 +166,4 @@ def calc_possiblities_loop(springs: str, groups, first=False):
 
 with open('input/day-12.txt', 'r') as f:
     lines = f.read().split('\n')
-    print(sum(calc_possiblities_loop(*parse_line(l), True) for l in lines))
+    print(sum(calc_possiblities_loop(*parse_line(l), True) for l in lines[:1]))
