@@ -8,15 +8,14 @@ def parse_line(line: str):
     return '?'.join([springs] * 5), groups * 5
 
 
-def is_valid(springs: str, groups):
+def is_valid(springs: str, groups: list):
     found_groups = [len(g) for g in springs.split('.') if len(g) > 0]
     return len(found_groups) == len(groups) and \
         all(a == b for a, b in zip(found_groups, groups))
 
 
-def brute_force(springs: str, groups):
+def brute_force(springs: str, groups: list):
     needed = sum(groups) - springs.count('#')
-
     if needed < 0:
         return 0
 
@@ -82,88 +81,186 @@ def brute_force_v2(springs: str, groups):
     return brute_force(springs, groups)
 
 
-def brute_force_by_group(springs: str, groups):
-    if sum(groups) - springs.count('#') < 0:
-        return 0
+class Optimise:
+    def __init__(self, springs: str, groups: list):
+        self.springs = springs
+        self.groups = groups
+        self.improved = False
 
-    wide_slots = [g for g in springs.split('.') if len(g)]
-    if len(wide_slots) == 1:
-        return brute_force_v2(springs, groups)
+    def output(self):
+        return self.springs, self.groups
 
-    total = 0
+    def trim_sides(self):
+        if self.springs.startswith('.') or self.springs.endswith('.'):
+            self.springs = self.springs.lstrip('.').rstrip('.')
+            self.improved = True
 
-    first_slot_count = 0
-    for first_slot_count in range(len(groups) + 1):
-        if sum(groups[:first_slot_count]) + len(groups[:first_slot_count]) - 1 > len(wide_slots[0]):
-            break
+    def remove_edge_groups(self):
+        if self.springs.startswith('#'):
+            g = self.groups.pop(0)
+            self.springs = self.springs[g + 1:]
+            self.improved = True
 
-        total += brute_force_v2(wide_slots[0], groups[:first_slot_count]) * \
-            calc_possiblities_loop(
-                '.'.join(wide_slots[1:]), groups[first_slot_count:])
+        if self.springs.endswith('#'):
+            g = self.groups.pop()
+            self.springs = self.springs[:-(g + 1)]
+            self.improved = True
 
-    return total
+    def extend_side_groups(self):
+        if len(self.springs) == 0 or len(self.groups) == 0:
+            return
+
+        if '#' in self.springs[:self.groups[0]]:
+            pos = self.springs.index('#')
+            if pos < self.groups[0] - 1:
+                old = self.springs
+                self.springs = self.springs[:pos] + '#' * \
+                    (self.groups[0] - pos) + self.springs[self.groups[0]:]
+                if old != self.springs:
+                    self.improved = True
+
+        if '#' in self.springs[:-self.groups[-1]]:
+            from_end = ''.join(
+                reversed(self.springs[:-self.groups[-1]])).index('#')
+            if from_end < self.groups[-1] - 1:
+                old = self.springs
+                self.springs = self.springs[:-self.groups[-1]] + '#' * \
+                    (self.groups[-1] - from_end) + self.springs[-from_end:]
+                if old != self.springs:
+                    self.improved = True
+
+    def trim_redundant_edge_groups(self):
+        wide_slots = [g for g in self.springs.split('.') if len(g)]
+        if len(wide_slots) < 2:
+            return
+
+        if len(wide_slots[0]) < self.groups[0]:
+            self.springs = '.'.join(wide_slots[1:])
+            self.improved = True
+
+        if len(wide_slots[-1]) < self.groups[-1]:
+            self.springs = '.'.join(wide_slots[:-1])
+            self.improved = True
+
+    def remove_visible_side_groups(self):
+        vis_groups = [len(g) for g in self.springs.split('?') if len(g)]
+        if len(vis_groups) < 2:
+            return
+
+        sbfv = self.springs.index('#')  # Space Before First Visible (SBFV)
+        if sbfv < self.groups[1] + 1:
+            self.springs = self.springs[sbfv + vis_groups[0] + 1:]
+            self.groups = self.groups[1:]
+            self.improved = True
+            return
+
+        salv = ''.join(reversed(self.springs)).index(
+            '#')  # Space After Last Visible (SALV)
+        if salv < self.groups[-2] + 1:
+            self.springs = self.springs[:-(salv + vis_groups[-1] + 1)]
+            self.groups = self.groups[:-1]
+            self.improved = True
+            return
 
 
-def calc_possiblities_loop(springs: str, groups, first=False):
-    while True:
-        print(springs, '\n', '  -', groups)
-        if len(groups) == 0 or springs.count('?') == 0:
+class SolveLine:
+    memo = {}
+
+    @staticmethod
+    def has_result(springs, groups):
+        key = springs + ' ' + ','.join(map(str, groups))
+        return SolveLine.memo[key] if key in SolveLine.memo else None
+
+    @staticmethod
+    def save_result(springs, groups, result):
+        key = springs + ' ' + ','.join(map(str, groups))
+        SolveLine.memo[key] = result
+
+    def __init__(self, springs: str, groups: list, start=False):
+        self.springs = springs
+        self.groups = groups
+        self.start = start
+        if self.start:
+            print(springs, '\n', '  -', groups)
+
+        self.is_sus = False
+
+    def sus(self):
+        self.is_sus = True
+        return self
+
+    def wide_slots(self):
+        return [g for g in self.springs.split('.') if len(g)]
+
+    def optimise(self):
+        O = Optimise(self.springs, self.groups)
+        while True:
+            if sum(self.groups) == 0 or self.springs.count('?') == 0:
+                break
+
+            optimisers = [O.trim_sides, O.remove_edge_groups,
+                          O.extend_side_groups, O.trim_redundant_edge_groups]
+
+            for o in optimisers:
+                o()
+                if O.improved:
+                    break
+            else:
+                if len(self.wide_slots()) == 1:
+                    O.remove_visible_side_groups()
+
+            if not O.improved:
+                break
+            O.improved = False
+
+        self.springs, self.groups = O.output()
+
+    def calc(self) -> int:
+        if sum(self.groups) - self.springs.count('#') < 0:
+            return 0
+
+        if not self.is_sus:
+            self.optimise()
+
+        res = SolveLine.has_result(self.springs, self.groups)
+        if res is not None:
+            if self.start:
+                print('   - Result =', res, '\n')
+            return res
+
+        res = self.calc_single() if len(self.wide_slots()) <= 1 else self.calc_multiple()
+        SolveLine.save_result(self.springs, self.groups, res)
+        if self.start:
+            print('   - Result =', res, '\n')
+        return res
+
+    def calc_single(self) -> int:
+        if len(self.groups) == 0:
             return 1
 
-        if springs.startswith('.') or springs.endswith('.'):
-            springs = springs.lstrip('.').rstrip('.')
-            continue
+        return brute_force(self.springs, self.groups)
 
-        if springs.startswith('#'):
-            g = groups.pop(0)
-            springs = springs[g + 1:]
-            continue
+    def calc_multiple(self) -> int:
+        total = 0
+        num_in_first = 0
+        ws = self.wide_slots()
 
-        if springs.endswith('#'):
-            g = groups.pop()
-            springs = springs[:-(g + 1)]
-            continue
+        for num_in_first in range(len(self.groups) + 1):
+            nums = self.groups[:num_in_first]
+            if sum(nums) + len(nums) - 1 > len(ws[0]):
+                break
 
-        if '#' in springs[:groups[0]]:
-            pos = springs.index('#')
-            if pos < groups[0] - 1:
-                old = springs
-                springs = springs[:pos] + '#' * \
-                    (groups[0] - pos) + springs[groups[0]:]
-                if old != springs:
-                    continue
+            popped = SolveLine(ws[0], nums).sus()
+            rest = SolveLine('.'.join(ws[1:]),
+                             self.groups[num_in_first:]).sus()
+            total += popped.calc() * rest.calc()
+            # print('total', '.'.join(ws[1:]), self.groups[num_in_first:])
 
-        if '#' in springs[:-groups[-1]]:
-            from_end = ''.join(reversed(springs[:-groups[-1]])).index('#')
-            if from_end < groups[-1] - 1:
-                old = springs
-                springs = springs[:-groups[-1]] + '#' * \
-                    (groups[-1] - from_end) + springs[-from_end:]
-                if old != springs:
-                    continue
-
-        wide_slots = [g for g in springs.split('.') if len(g)]
-        if len(wide_slots):
-            if len(wide_slots[0]) <= groups[0]:
-                springs = '.'.join(wide_slots[1:])
-                if len(wide_slots[0]) == groups[0]:
-                    groups = groups[1:]
-                continue
-
-            if len(wide_slots[-1]) <= groups[-1]:
-                springs = '.'.join(wide_slots[:-1])
-                if len(wide_slots[-1]) == groups[-1]:
-                    groups = groups[:-1]
-                continue
-
-        break
-
-    if first:
-        print(springs, '\n', '  -', groups)
-
-    return brute_force_by_group(springs, groups)
+        return total
 
 
 with open('input/day-12.txt', 'r') as f:
     lines = f.read().split('\n')
-    print(sum(calc_possiblities_loop(*parse_line(l), True) for l in lines[:1]))
+    print(sum(SolveLine(*parse_line(l), True).calc() for l in lines))
+    # SolveLine('???.######.#####.?????', [1, 6, 5, 1], True).calc()
+    print("\n".join(f"{k}\t{v}" for k, v in SolveLine.memo.items() if v))
