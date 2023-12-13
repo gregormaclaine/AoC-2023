@@ -1,5 +1,28 @@
-from itertools import combinations
-from math import comb
+from itertools import combinations, permutations
+from math import comb, factorial
+
+
+def accel_asc(n):  # https://stackoverflow.com/questions/10035752/elegant-python-code-for-integer-partitioning
+    a = [0 for i in range(n + 1)]
+    k = 1
+    y = n - 1
+    while k != 0:
+        x = a[k - 1] + 1
+        k -= 1
+        while 2 * x <= y:
+            a[k] = x
+            y -= x
+            k += 1
+        l = k + 1
+        while x <= y:
+            a[k] = x
+            a[l] = y
+            yield a[:k + 2]
+            x += 1
+            y -= 1
+        a[k] = x + y
+        y = x + y - 1
+        yield a[:k + 1]
 
 
 def parse_line(line: str):
@@ -51,12 +74,26 @@ def brute_force_v2(springs: str, groups: list):
     if springs.count('#') == 0:
         return brute_force(springs, groups)
 
-    vis_groups = [len(g) for g in springs.split('?') if len(g)]
-    vis_indexes = get_indexes(vis_groups, springs)
-    if max(groups) in vis_groups:
-        m = max(groups)
-        max_indexes = [i for i, g in enumerate(groups) if g == m]
-        print(m, vis_groups, vis_indexes, max_indexes)
+    free_spaces = len(springs) - sum(groups) - (len(groups) - 1)
+    num_gaps = len(groups) + 1
+    print('fs', free_spaces, num_gaps)
+    parts = [part for part in accel_asc(free_spaces) if len(part) <= num_gaps]
+    print('accel', len(parts), parts[:100])
+    total = 0
+    for partition in accel_asc(free_spaces):
+        if len(partition) > num_gaps:
+            continue
+
+        if len(partition) < num_gaps:
+            partition += [0] * (num_gaps - len(partition))
+
+        t = factorial(len(partition))
+        for n in set(partition):
+            t /= factorial(partition.count(n))
+        total += t
+
+    print('done', total)
+
     return brute_force(springs, groups)
 
 
