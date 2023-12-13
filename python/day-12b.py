@@ -2,29 +2,6 @@ from itertools import combinations, permutations
 from math import comb, factorial
 
 
-def accel_asc(n):  # https://stackoverflow.com/questions/10035752/elegant-python-code-for-integer-partitioning
-    a = [0 for i in range(n + 1)]
-    k = 1
-    y = n - 1
-    while k != 0:
-        x = a[k - 1] + 1
-        k -= 1
-        while 2 * x <= y:
-            a[k] = x
-            y -= x
-            k += 1
-        l = k + 1
-        while x <= y:
-            a[k] = x
-            a[l] = y
-            yield a[:k + 2]
-            x += 1
-            y -= 1
-        a[k] = x + y
-        y = x + y - 1
-        yield a[:k + 1]
-
-
 def parse_line(line: str):
     springs, groups = line.split()
     groups = [int(g) for g in groups.split(',')]
@@ -74,25 +51,9 @@ def brute_force_v2(springs: str, groups: list):
     if springs.count('#') == 0:
         return brute_force(springs, groups)
 
-    free_spaces = len(springs) - sum(groups) - (len(groups) - 1)
-    num_gaps = len(groups) + 1
-    print('fs', free_spaces, num_gaps)
-    parts = [part for part in accel_asc(free_spaces) if len(part) <= num_gaps]
-    print('accel', len(parts), parts[:100])
-    total = 0
-    for partition in accel_asc(free_spaces):
-        if len(partition) > num_gaps:
-            continue
+    print(springs, '\n', '  -', groups)
 
-        if len(partition) < num_gaps:
-            partition += [0] * (num_gaps - len(partition))
-
-        t = factorial(len(partition))
-        for n in set(partition):
-            t /= factorial(partition.count(n))
-        total += t
-
-    print('done', total)
+    # TODO: Final optimisation on long strings of only '#' and '?'
 
     return brute_force(springs, groups)
 
@@ -178,8 +139,8 @@ class SolveLine:
         self.springs = springs
         self.groups = groups
         self.start = start
-        if self.start:
-            print(springs, '\n', '  -', groups)
+        # if self.start:
+        #     print(springs, '\n', '  -', groups)
 
         self.is_sus = False
 
@@ -202,8 +163,8 @@ class SolveLine:
             for o in optimisers:
                 o()
                 if O.improved:
-                    s, g = O.output()
-                    print(s, '\n', '  -', g)
+                    # s, g = O.output()
+                    # print(s, '\n', '  -', g)
                     break
 
             if not O.improved:
@@ -261,6 +222,6 @@ class SolveLine:
 
 with open('input/day-12.txt', 'r') as f:
     lines = f.read().split('\n')
-    print(sum(SolveLine(*parse_line(l), True).calc() for l in lines[5:]))
+    print(sum(SolveLine(*parse_line(l), True).calc() for l in lines))
     # SolveLine('???.######.#####.?????', [1, 6, 5, 1], True).calc()
     print("\n".join(f"{k}\t{v}" for k, v in SolveLine.memo.items() if v))
