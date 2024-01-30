@@ -11,16 +11,16 @@ li $t4, 0   # Second digit
 
 main:
 	lb $t1, buffer($t0)
-	
+
 	beq $t1, '\n', end_line
 	beqz $t1, end
-	
+
 	bgt $t1, 64, hit_char  # If t1 is letter skip
-	
+
 	subi $t4, $t1, 48  # Set second digit to number in t1
-	
+
 	addi $t0, $t0, 1
-	
+
 	ble $t3, 9, main
 	subi $t3, $t1, 48  # Set first digit to number in t1 if not set
 	j main
@@ -29,10 +29,10 @@ end_line:
 	add $t2, $t2, $t4
 	mul $t3, $t3, 10
 	add $t2, $t2, $t3
-	
+
 	li $t3, 10
 	li $t4, 0
-	
+
 	addi $t0, $t0, 1
 	j main
 
@@ -49,7 +49,7 @@ end_line:
 hit_char:
 	la $t9, buffer
 	add $t9, $t9, $t0
-    addi $t0, $t0, 1
+	addi $t0, $t0, 1
 
 	beq $t1, 111, hit_char_o
 	beq $t1, 116, hit_char_t
@@ -60,7 +60,7 @@ hit_char:
 
 	# Else not going to be a number
 	j main
-	
+
 hit_char_o:
 	lb $t1, 1($t9)
 	bne $t1, 'n', main

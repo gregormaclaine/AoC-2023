@@ -7,6 +7,14 @@
       "label": "Run Rust Solution",
       "type": "shell",
       "command": "clear && cargo run --bin ${fileBasenameNoExtension} --manifest-path ./rust/Cargo.toml"
+    },
+    {
+      "label": "Format MIPS",
+      "type": "shell",
+      "command": "mac-mips ${file}",
+      "presentation": {
+        "reveal": "silent"
+      }
     }
   ]
 }
